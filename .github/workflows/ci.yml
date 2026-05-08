@@ -12,20 +12,29 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
-  check:
-    name: Check formatting
+  fmt:
+    name: Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
+          components: rustfmt
       - run: cargo fmt --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
       - run: cargo clippy -- -D warnings
 
   test:
     name: Test (${{ matrix.os }})
-    needs: check
+    needs: [fmt, clippy]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
