@@ -21,5 +21,5 @@ pub mod platform;
 pub mod window;
 
 pub use config::Config;
-pub use error::{ShowpidError, Result};
+pub use error::{Result, ShowpidError};
 pub use window::WindowInfo;
