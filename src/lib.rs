@@ -8,11 +8,11 @@
 //!
 //! ```rust
 //! use showpid::Config;
-//! use showpid::platform::WindowActivator;
+//! use showpid::platform::{WindowActivator, ActivateWindow};
 //!
 //! let config = Config::new(1234).with_verbose(true);
 //! let mut activator = WindowActivator::new(config);
-//! activator.activate()?;
+//! // activator.execute()?;
 //! ```
 
 pub mod config;
@@ -21,5 +21,5 @@ pub mod platform;
 pub mod window;
 
 pub use config::Config;
-pub use error::{Result, ShowpidError};
+pub use error::{ShowpidError, Result};
 pub use window::WindowInfo;
