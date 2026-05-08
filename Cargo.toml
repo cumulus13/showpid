@@ -1,16 +1,16 @@
 [package]
 name = "showpid"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2021"
-description = "Bring window of specified PID to foreground on Windows"
+description = "Bring window of specified PID to foreground on Windows, macOS, and Linux"
 authors = ["Hadi Cahyadi <cumulus13@gmail.com>"]
 license = "MIT"
 repository = "https://github.com/cumulus13/showpid"
 homepage = "https://github.com/cumulus13/showpid"
 documentation = "https://docs.rs/showpid"
 readme = "README.md"
-keywords = ["windows", "pid", "foreground", "window", "cli"]
-categories = ["command-line-utilities", "os::windows-apis"]
+keywords = ["windows", "linux", "macos", "pid", "foreground", "window", "cli"]
+categories = ["command-line-utilities", "os"]
 exclude = [
     ".github/",
     ".gitignore",
@@ -19,11 +19,26 @@ exclude = [
 
 [dependencies]
 clap-version-flag = "1.0.5"
+log = "0.4"
+env_logger = "0.11"
+
+[target.'cfg(windows)'.dependencies]
 windows = { version = "0.58", features = [
     "Win32_Foundation",
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_Threading",
 ] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+x11 = { version = "2", features = ["xlib"] }
+libc = "0.2"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.10"
+core-graphics = "0.23"
+objc = "0.2"
+objc-foundation = "0.1"
+cocoa = "0.26"
 
 [dev-dependencies]
 
@@ -34,5 +49,3 @@ codegen-units = 1
 strip = true
 panic = "abort"
 
-[target.'cfg(windows)'.dependencies]
-# Windows-only dependencies (currently all dependencies are Windows-only)

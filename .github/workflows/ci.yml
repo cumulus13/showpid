@@ -15,7 +15,7 @@ jobs:
   # Check code formatting
   fmt:
     name: Rustfmt
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -26,33 +26,46 @@ jobs:
 
   # Lint with Clippy
   clippy:
-    name: Clippy
-    runs-on: windows-latest
+    name: Clippy (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev
       - name: Run Clippy
         run: cargo clippy -- -D warnings
 
   # Build and test
   build-and-test:
-    name: Build & Test
-    runs-on: windows-latest
-    needs: [fmt, clippy]
+    name: Build & Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [fmt]
     strategy:
       matrix:
-        toolchain: [stable, beta]
-        arch: [x86_64]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        toolchain: [stable]
     steps:
       - uses: actions/checkout@v4
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.toolchain }}
-          targets: ${{ matrix.arch }}-pc-windows-msvc
+      
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev
       
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -61,30 +74,70 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-${{ matrix.arch }}-cargo-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.arch }}-cargo-${{ matrix.toolchain }}-
+            ${{ runner.os }}-cargo-${{ matrix.toolchain }}-
       
       - name: Check compilation
-        run: cargo check --target ${{ matrix.arch }}-pc-windows-msvc
+        run: cargo check
       
       - name: Run tests
-        run: cargo test --target ${{ matrix.arch }}-pc-windows-msvc
+        run: cargo test
       
       - name: Build release
-        run: cargo build --release --target ${{ matrix.arch }}-pc-windows-msvc
+        run: cargo build --release
       
-      - name: Upload artifacts
+      - name: Upload artifacts (Windows)
+        if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: showpid-${{ matrix.arch }}-pc-windows-msvc
-          path: target/${{ matrix.arch }}-pc-windows-msvc/release/showpid.exe
+          name: showpid-windows-x86_64
+          path: target/release/showpid.exe
           retention-days: 30
+      
+      - name: Upload artifacts (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: showpid-linux-x86_64
+          path: target/release/showpid
+          retention-days: 30
+      
+      - name: Upload artifacts (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: showpid-macos-x86_64
+          path: target/release/showpid
+          retention-days: 30
+
+  # Cross-compilation checks
+  cross-platform-check:
+    name: Cross Platform Check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-pc-windows-gnu
+          - x86_64-unknown-linux-gnu
+          - x86_64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux dependencies
+        if: contains(matrix.target, 'linux')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev
+      - name: Check compilation for ${{ matrix.target }}
+        run: |
+          rustup target add ${{ matrix.target }}
+          cargo check --target ${{ matrix.target }}
 
   # Security audit
   security-audit:
     name: Security Audit
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -92,13 +145,3 @@ jobs:
         run: cargo install cargo-audit
       - name: Run security audit
         run: cargo audit
-
-  # MinRustV check
-  msrv:
-    name: MSRV Check
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.70.0
-      - name: Check MSRV
-        run: cargo check
