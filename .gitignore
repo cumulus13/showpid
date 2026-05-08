@@ -1,17 +1,17 @@
 
-# Ignore Sublime Text project files
-*.sublime-*
-# PT backup directory
-.pt/
-
-# Added entries (7 items)
+# Added entries (6 items)
 target/
 *.exe
-tmp*
-src/*
+src/tmp*
 download/
-downloads/
+temp/
 PLAN.md
 
 # Added entries (1 items)
+.pt/
+
+# Added entries (1 items)
 *.bak
+
+# Added entries (1 items)
+*sublime*

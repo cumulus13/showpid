@@ -372,6 +372,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
  
 [Support me on Patreon](https://www.patreon.com/cumulus13)
 
+- GitHub: [@cumulus13](https://github.com/cumulus13)
+
 ## Acknowledgments
 
 - Original Python version by Hadi Cahyadi

@@ -8,25 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2025-12-29
 
 ### Added
-- Initial Rust implementation of showpid
-- Window enumeration by PID
-- Foreground window activation
-- Window restoration from minimized state
-- Retry logic with configurable attempts
-- Thread input attachment for reliable activation
-- Verbose mode for debugging
-- Comprehensive error handling
-- Unit tests
-- CI/CD workflow
-- GitHub Actions integration
-
-### Changed
-- Converted from Python to Rust for better performance
-- Added proper error messages and exit codes
-- Improved documentation
-
-### Migration from Python
-- Python: `showpid.py <PID>`
-- Rust: `showpid <PID>`
-- Added `-v`/`--verbose` flag
-- Added `-h`/`--help` flag
+- Initial cross-platform release
+- Windows support via Win32 API (EnumWindows, SetForegroundWindow)
+- Linux support via X11 (XRaiseWindow, XSetInputFocus)
+- macOS support via AppleScript (osascript)
+- Retry logic with configurable attempts and delay
+- Verbose mode for detailed progress output
+- Comprehensive error handling with helpful messages
+- Proper exit codes (0 = success, 1 = error)
+- Unit tests for argument parsing
+- CI/CD pipeline with GitHub Actions
+- Cross-platform release artifacts
+- Automatic publishing to crates.io
+- Security auditing via cargo-audit
