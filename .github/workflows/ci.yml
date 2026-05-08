@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: [main, master]
 
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
@@ -30,6 +33,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+      - name: Install libx11-dev
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev
       - run: cargo clippy -- -D warnings
 
   test:
