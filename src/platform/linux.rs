@@ -5,7 +5,6 @@
 use std::ffi::CString;
 use std::ptr;
 use std::thread;
-use std::time::Duration;
 use x11::xlib;
 
 use crate::config::Config;
@@ -121,6 +120,7 @@ impl ActivateWindow for WindowActivator {
     fn activate(&self, window: &WindowInfo) -> Result<()> {
         let xid = match &window.handle {
             crate::window::WindowHandle::X11(id) => *id,
+            #[allow(unreachable_patterns)]
             _ => {
                 return Err(ShowpidError::PlatformError {
                     platform: "Linux".into(),

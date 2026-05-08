@@ -11,7 +11,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo package --no-verify
+      - name: Install Linux dependencies
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev
+      - name: Run format check
+        run: cargo fmt --all -- --check
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
+      - name: Package
+        run: cargo package --no-verify
 
   publish-crates:
     name: Publish to crates.io
@@ -20,11 +27,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo publish --token ${{ secrets.CRATES_TOKEN }}
+      - name: Install Linux dependencies
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev
+      - name: Verify tag matches version
+        shell: bash
+        run: |
+          VERSION_IN_TOML=$(grep '^version' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          VERSION_IN_TAG=${GITHUB_REF#refs/tags/v}
+          if [ "$VERSION_IN_TOML" != "$VERSION_IN_TAG" ]; then
+            echo "Version in Cargo.toml ($VERSION_IN_TOML) doesn't match tag version ($VERSION_IN_TAG)"
+            exit 1
+          fi
+      - name: Dry run publish
+        run: cargo publish --dry-run
+      - name: Publish to crates.io
+        run: cargo publish --token ${{ secrets.CRATES_TOKEN }}
 
   github-release:
     name: Create GitHub Release
-    needs: verify
+    needs: publish-crates
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

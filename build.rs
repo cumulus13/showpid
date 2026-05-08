@@ -3,10 +3,7 @@
 
 fn main() {
     // Print platform information during build
-    println!(
-        "cargo:rustc-cfg=platform=\"{}\"",
-        std::env::var("TARGET").unwrap()
-    );
+    println!("cargo:rustc-cfg=platform=\"{}\"", std::env::var("TARGET").unwrap());
 
     // Ensure we only build on supported platforms
     let target = std::env::var("TARGET").unwrap();
