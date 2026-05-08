@@ -4,7 +4,6 @@
 
 use std::process::Command;
 use std::thread;
-use std::time::Duration;
 
 use crate::config::Config;
 use crate::error::{Result, ShowpidError};
@@ -29,7 +28,6 @@ impl ActivateWindow for WindowActivator {
     }
 
     fn find_windows(&mut self) -> Result<Vec<WindowInfo>> {
-        // macOS uses osascript directly; just return a placeholder
         Ok(vec![WindowInfo::new_macos(self.config.pid, None, 0)])
     }
 
