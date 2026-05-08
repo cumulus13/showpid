@@ -1,0 +1,38 @@
+[package]
+name = "showpid"
+version = "1.0.0"
+edition = "2021"
+description = "Bring window of specified PID to foreground on Windows"
+authors = ["Hadi Cahyadi <cumulus13@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/cumulus13/showpid"
+homepage = "https://github.com/cumulus13/showpid"
+documentation = "https://docs.rs/showpid"
+readme = "README.md"
+keywords = ["windows", "pid", "foreground", "window", "cli"]
+categories = ["command-line-utilities", "os::windows-apis"]
+exclude = [
+    ".github/",
+    ".gitignore",
+    "CHANGELOG.md",
+]
+
+[dependencies]
+clap-version-flag = "1.0.5"
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_Threading",
+] }
+
+[dev-dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[target.'cfg(windows)'.dependencies]
+# Windows-only dependencies (currently all dependencies are Windows-only)

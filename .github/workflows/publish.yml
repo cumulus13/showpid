@@ -1,0 +1,159 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+
+env:
+  CARGO_TERM_COLOR: always
+  CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}
+
+jobs:
+  # Verify before publishing
+  verify:
+    name: Verify
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-publish-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Format check
+        run: cargo fmt --all -- --check
+      
+      - name: Clippy check
+        run: cargo clippy -- -D warnings
+      
+      - name: Run tests
+        run: cargo test
+      
+      - name: Verify package
+        run: cargo package --no-verify
+      
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: target/package/
+          retention-days: 7
+
+  # Create GitHub Release
+  create-release:
+    name: Create Release
+    runs-on: windows-latest
+    needs: [verify]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Build release binary
+        run: cargo build --release
+      
+      - name: Package binary
+        run: |
+          mkdir -p release
+          copy target\release\showpid.exe release\
+          copy README.md release\
+          copy LICENSE release\
+          Compress-Archive -Path release\* -DestinationPath showpid-windows-x86_64.zip
+      
+      - name: Get version from tag
+        id: get_version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Release v${{ steps.get_version.outputs.VERSION }}"
+          body: |
+            ## showpid v${{ steps.get_version.outputs.VERSION }}
+            
+            Bring window of specified PID to foreground on Windows.
+            
+            ### Installation
+            
+            ```bash
+            cargo install showpid
+            ```
+            
+            ### Downloads
+            
+            - `showpid-windows-x86_64.zip` - Windows 64-bit executable
+            
+            ### Changes
+            
+            See [CHANGELOG.md](https://github.com/cumulus13/showpid/blob/main/CHANGELOG.md) for details.
+          files: |
+            showpid-windows-x86_64.zip
+          draft: false
+          prerelease: ${{ contains(github.ref, '-') }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Publish to crates.io
+  publish-crates:
+    name: Publish to crates.io
+    runs-on: windows-latest
+    needs: [create-release]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-publish-crates-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Verify tag matches version
+        shell: bash
+        run: |
+          VERSION_IN_TOML=$(grep '^version' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          VERSION_IN_TAG=${GITHUB_REF#refs/tags/v}
+          if [ "$VERSION_IN_TOML" != "$VERSION_IN_TAG" ]; then
+            echo "Version in Cargo.toml ($VERSION_IN_TOML) doesn't match tag version ($VERSION_IN_TAG)"
+            exit 1
+          fi
+      
+      - name: Dry run publish
+        run: cargo publish --dry-run
+      
+      - name: Publish to crates.io
+        run: cargo publish --token ${{ secrets.CRATES_TOKEN }}
+      
+      - name: Notify success
+        run: echo "Successfully published showpid v${{ github.ref_name }} to crates.io"
+
+  # Publish documentation to docs.rs
+  docs:
+    name: Documentation
+    runs-on: windows-latest
+    needs: [publish-crates]
+    steps:
+      - name: Trigger docs.rs build
+        shell: bash
+        run: |
+          curl -X POST https://docs.rs/crate/showpid/${{ github.ref_name }}/build \
+            -H "Authorization: ${{ secrets.DOCS_TOKEN }}" \
+            -H "Content-Type: application/json"
